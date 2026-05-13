@@ -7,50 +7,94 @@ function App() {
   const [ports, setPorts] = useState([])
   const [selectedPort, setSelectedPort] = useState('')
   const [connected, setConnected] = useState(false)
-  const [status, setStatus] = useState('Not connected')
+  const [status, setStatus] = useState('Board yet to be connected')
+  const [statusType, setStatusType] = useState('') // '', 'connected', 'error'
+  const [connecting, setConnecting] = useState(false)
 
   // Fetch available serial ports on mount
   useEffect(() => { fetchPorts() }, [])
 
   async function fetchPorts() {
-    const res = await fetch(`${API}/ports`)
-    const data = await res.json()
-    setPorts(data.ports)
+    try {
+      const res = await fetch(`${API}/ports`)
+      const data = await res.json()
+      setPorts(data.ports)
+    } catch (e) {
+      setStatus('Error: could not reach backend')
+      setStatusType('error')
+    }
   }
 
   async function connect() {
-    const res = await fetch(`${API}/connect`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ port: selectedPort })
-    })
-    const data = await res.json()
-    if (data.status === 'connected') {
-      setConnected(true)
-      setStatus(`Connected to ${selectedPort}`)
+    setConnecting(true)
+    setStatus('Connecting...')
+    setStatusType('')
+    try {
+      const res = await fetch(`${API}/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ port: selectedPort })
+      })
+      const data = await res.json()
+      if (data.status === 'connected') {
+        setConnected(true)
+        setStatus(`Connected to ${selectedPort}`)
+        setStatusType('connected')
+      } else {
+        setStatus(`Error: ${data.detail || 'could not connect'}`)
+        setStatusType('error')
+      }
+    } catch (e) {
+      setStatus('Error: could not reach backend')
+      setStatusType('error')
+    } finally {
+      setConnecting(false)
     }
   }
 
   async function sendCommand(cmd) {
     if (!connected) return
-    const res = await fetch(`${API}/command/${cmd}`, { method: 'POST' })
-    const data = await res.json()
-    setStatus(`Device replied: ${data.response}`)
+    try {
+      const res = await fetch(`${API}/command/${cmd}`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok) {
+        setStatus(data.response ? `Device replied: ${data.response}` : 'Board yet to be connected')
+        setStatusType('connected')
+      } else {
+        setStatus(`Error: ${data.detail || 'command failed'}`)
+        setStatusType('error')
+      }
+    } catch (e) {
+      setStatus('Error: could not reach backend')
+      setStatusType('error')
+    }
   }
 
   return (
-    <>
+    <div className="card">
+      <h1>STM32 <span>Controller</span></h1>
+      <div className="divider" />
+
       <select value={selectedPort} onChange={(e) => setSelectedPort(e.target.value)}>
         <option value="">Select a port...</option>
         {ports.map((p) => (
           <option key={p.port} value={p.port}>{p.port} — {p.description}</option>
         ))}
       </select>
-      <button onClick={fetchPorts}>Refresh</button>
-      <button onClick={connect} disabled={!selectedPort}>Connect</button>
-      <p>{status}</p>
-      <button className='proof' onClick={() => sendCommand('LED_ON')} disabled={!connected}>Send signal</button>
-    </>
+
+      <div className="port-row">
+        <button className="btn btn-ghost" onClick={fetchPorts}>Refresh</button>
+        <button className="btn btn-primary" onClick={connect} disabled={!selectedPort || connecting}>
+          {connecting ? 'Connecting...' : 'Connect'}
+        </button>
+      </div>
+
+      <div className={`status-box ${statusType}`}>{status}</div>
+
+      <button className="btn-send" onClick={() => sendCommand('LED_ON')} disabled={!connected}>
+        Send signal
+      </button>
+    </div>
   )
 }
 

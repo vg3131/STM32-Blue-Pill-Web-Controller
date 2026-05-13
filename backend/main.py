@@ -1,4 +1,5 @@
 import asyncio
+import time
 import serial
 import serial.tools.list_ports
 from fastapi import FastAPI, HTTPException
@@ -38,6 +39,7 @@ def connect_port(body: PortSelect):
         if ser and ser.is_open:
             ser.close()
         ser = serial.Serial(body.port, 115200, timeout=2)
+        time.sleep(2)  # Wait for STM32 to reset after serial port opens
         return {"status": "connected", "port": body.port}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
