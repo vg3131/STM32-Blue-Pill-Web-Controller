@@ -31,14 +31,14 @@ def get_ports():
 # POST /connect
 # Opens a serial connection to the port specified in the request body.
 # If a port is already open, it closes it first before opening the new one.
-# Baud rate is fixed at 115200 to match the STM32 firmware.
+# Baud rate is fixed at 9600 to match the STM32 firmware.
 @app.post("/connect")
 def connect_port(body: PortSelect):
     global ser
     try:
         if ser and ser.is_open:
             ser.close()
-        ser = serial.Serial(body.port, 115200, timeout=2)
+        ser = serial.Serial(body.port, 9600, timeout=2)
         time.sleep(2)  # Wait for STM32 to reset after serial port opens
         return {"status": "connected", "port": body.port}
     except Exception as e:

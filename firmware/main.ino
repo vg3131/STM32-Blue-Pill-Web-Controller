@@ -1,12 +1,15 @@
 void setup() {
-  Serial.begin(115200);
-  pinMode(PC13, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
   if (Serial.available()) {
-    String cmd = Serial.readStringUntil('\n');
-    cmd.trim();
-    if (cmd == "LED_ON") digitalWrite(PC13, LOW);
+    char cmd = Serial.read();
+    if (cmd == "N") {
+        digitalWrite(LED_BUILTIN, HIGH);
+    }
+    else if (cmd == "F") {
+        digitalWrite(LED_BUILTIN, LOW);
+    }
   }
 }

@@ -7,9 +7,12 @@ function App() {
   const [ports, setPorts] = useState([])
   const [selectedPort, setSelectedPort] = useState('')
   const [connected, setConnected] = useState(false)
-  const [status, setStatus] = useState('Board yet to be connected')
+  const [status, setStatus] = useState('Not connected')
   const [statusType, setStatusType] = useState('') // '', 'connected', 'error'
   const [connecting, setConnecting] = useState(false)
+  const [selectedCommand, setSelectedCommand] = useState('LED_ON')
+
+  const commands = ['LED_ON', 'LED_OFF']
 
   // Fetch available serial ports on mount
   useEffect(() => { fetchPorts() }, [])
@@ -38,7 +41,7 @@ function App() {
       const data = await res.json()
       if (data.status === 'connected') {
         setConnected(true)
-        setStatus(`Connected to ${selectedPort}`)
+        setStatus('Connected')
         setStatusType('connected')
       } else {
         setStatus(`Error: ${data.detail || 'could not connect'}`)
@@ -54,11 +57,19 @@ function App() {
 
   async function sendCommand(cmd) {
     if (!connected) return
+    
+    let command = cmd;
+    if (cmd === "LED_ON") {
+      command = "N";
+    } else if (cmd === "LED_OFF") {
+      command = "F";
+    }
+
     try {
       const res = await fetch(`${API}/command/${cmd}`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        setStatus(data.response ? `Device replied: ${data.response}` : 'Board yet to be connected')
+        setStatus(data.response ? 'Success' : 'No response from device')
         setStatusType('connected')
       } else {
         setStatus(`Error: ${data.detail || 'command failed'}`)
@@ -72,7 +83,7 @@ function App() {
 
   return (
     <div className="card">
-      <h1>STM32 <span>Controller</span></h1>
+      <h1>Raspberry Pico <span>Controller</span></h1>
       <div className="divider" />
 
       <select value={selectedPort} onChange={(e) => setSelectedPort(e.target.value)}>
@@ -89,9 +100,15 @@ function App() {
         </button>
       </div>
 
+      <select value={selectedCommand} onChange={(e) => setSelectedCommand(e.target.value)} disabled={!connected}>
+        {commands.map((cmd) => (
+          <option key={cmd} value={cmd}>{cmd}</option>
+        ))}
+      </select>
+
       <div className={`status-box ${statusType}`}>{status}</div>
 
-      <button className="btn-send" onClick={() => sendCommand('LED_ON')} disabled={!connected}>
+      <button className="btn-send" onClick={() => sendCommand(selectedCommand)} disabled={!connected}>
         Send signal
       </button>
     </div>
