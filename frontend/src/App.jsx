@@ -57,7 +57,7 @@ function App() {
 
   async function sendCommand(cmd) {
     if (!connected) return
-    
+
     let command = cmd;
     if (cmd === "LED_ON") {
       command = "N";
@@ -66,7 +66,7 @@ function App() {
     }
 
     try {
-      const res = await fetch(`${API}/command/${cmd}`, { method: 'POST' })
+      const res = await fetch(`${API}/command/${command}`, { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
         setStatus(data.response ? 'Success' : 'No response from device')
